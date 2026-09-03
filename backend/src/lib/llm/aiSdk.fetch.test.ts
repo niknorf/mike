@@ -31,7 +31,7 @@ describe("aiSdkFetch", () => {
 
   it("forwards clean malformed tool arguments and the final usage frame unchanged", async () => {
     const malformedArguments =
-      '{"title":"Closing Checklist Discrepancy Report","sections":';
+      '{"title":"Example Report","sections":';
     const body = [
       `data: ${JSON.stringify({
         choices: [
@@ -83,11 +83,10 @@ describe("aiSdkFetch", () => {
   });
 
   it("lets the OpenAI-compatible SDK recover a clean malformed generate_docx call", async () => {
-    // The Loops Fireworks overlay uses this provider. Its parser forwards the
-    // malformed input to Core 7, which emits a dynamic tool-error rather than
-    // calling Mike's tool executor.
+    // The OpenAI-compatible parser forwards malformed input to Core 7, which
+    // emits a dynamic tool-error rather than calling Mike's tool executor.
     const malformedArguments =
-      '{"title":"Closing Checklist Discrepancy Report","sections":';
+      '{"title":"Example Report","sections":';
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(
@@ -135,8 +134,8 @@ describe("aiSdkFetch", () => {
         ]),
       );
     vi.stubGlobal("fetch", fetchMock);
-    const fireworks = createOpenAICompatible({
-      name: "fireworks-test",
+    const openAICompatible = createOpenAICompatible({
+      name: "openai-compatible-test",
       apiKey: "test-key",
       baseURL: "https://example.test/v1",
       fetch: aiSdkFetch,
@@ -145,19 +144,19 @@ describe("aiSdkFetch", () => {
 
     const result = await streamAiSdk(
       {
-        model: "accounts/fireworks/models/glm-5p3",
+        model: "example/model",
         systemPrompt: "Help",
         messages: [{ role: "user", content: "Make the report" }],
         tools: [functionTool("generate_docx")],
         runTools,
       },
       {
-        // Fireworks is a Loops evaluation overlay, so use an existing provider
-        // discriminant for this upstream adapter unit test.
+        // This local transport test only needs an existing provider
+        // discriminant; every response is supplied by the fetch mock above.
         provider: "ollama",
-        label: "Fireworks test",
-        model: fireworks("accounts/fireworks/models/glm-5p3"),
-        modelId: "accounts/fireworks/models/glm-5p3",
+        label: "OpenAI-compatible test",
+        model: openAICompatible("example/model"),
+        modelId: "example/model",
         supportsReasoning: false,
       },
     );
