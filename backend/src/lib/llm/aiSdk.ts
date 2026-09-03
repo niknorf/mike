@@ -44,8 +44,21 @@ export async function aiSdkFetch(
       try {
         JSON.parse(partial.arguments);
       } catch {
+        // A clean terminal event proves that the transport delivered the
+        // complete provider response. Preserve malformed arguments exactly as
+        // sent so AI SDK can emit its recoverable dynamic tool-error instead
+        // of preempting its tool-validation path. A stream that just closes is
+        // still unsafe: its partial arguments must fail before any tool could
+        // run.
+        if (!endedCleanly) {
+          throw new Error(
+            `LLM stream ended with malformed JSON arguments for tool "${partial.name}".`,
+          );
+        }
+      }
+      if (!endedCleanly) {
         throw new Error(
-          `LLM stream ended with malformed JSON arguments for tool "${partial.name}".`,
+          `LLM stream ended before a clean terminal event for tool "${partial.name}".`,
         );
       }
     }
